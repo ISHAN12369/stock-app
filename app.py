@@ -1,4 +1,4 @@
-# app.py
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -12,18 +12,23 @@ import matplotlib.pyplot as plt
 import feedparser
 from textblob import TextBlob
 import nltk
-nltk.download('punkt')
+
+# Safe download for punkt tokenizer
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 st.set_page_config(layout="wide")
 st.title("📈 Stock Price Trend Prediction with XGBoost")
 st.markdown("Predict whether the stock will go up the next day using technical indicators, news sentiment, earnings, volatility, macro trends, and machine learning.")
 
-# --- User Inputs ---
+# User Inputs 
 ticker = st.text_input("Enter Stock Ticker", value="AAPL")
 start_date = st.date_input("Start Date", value=pd.to_datetime("2018-01-01"))
 end_date = st.date_input("End Date", value=pd.to_datetime("2025-07-17"))
 
-# --- News Sentiment by Date ---
+# News Sentiment by Date 
 def fetch_daily_sentiment(ticker, start_date, end_date):
     from dateutil import rrule
     sentiment_data = []
@@ -41,13 +46,13 @@ def fetch_daily_sentiment(ticker, start_date, end_date):
             else:
                 sentiment = 0.0
 
-            sentiment_data.append({"Date": dt.date(), "Sentiment": sentiment})
+            sentiment_data.append({"Date": pd.to_datetime(dt.date()), "Sentiment": sentiment})
         except:
-            sentiment_data.append({"Date": dt.date(), "Sentiment": 0.0})
+            sentiment_data.append({"Date": pd.to_datetime(dt.date()), "Sentiment": 0.0})
 
     return pd.DataFrame(sentiment_data)
 
-# --- Earnings Feature ---
+#  Earnings Feature 
 def add_earnings_feature(df, ticker):
     try:
         ticker_data = yf.Ticker(ticker)
@@ -59,7 +64,7 @@ def add_earnings_feature(df, ticker):
         df["Earnings"] = 0
         return df
 
-# --- Macro Trend Feature ---
+#  Macro Trend Feature
 def add_macro_proxy(df):
     try:
         sp500 = yf.download("^GSPC", start=df.index.min(), end=df.index.max())
@@ -72,6 +77,7 @@ def add_macro_proxy(df):
         df["SP500_Change"] = 0
         return df
 
+# Main Button 
 if st.button("🔍 Predict Trend"):
     try:
         df = yf.download(ticker, start=start_date, end=end_date)
@@ -94,8 +100,9 @@ if st.button("🔍 Predict Trend"):
 
             # Sentiment Feature
             sentiment_df = fetch_daily_sentiment(ticker, start_date, end_date)
+            df = df.reset_index()  # Ensure 'Date' column exists
+            df["Date"] = pd.to_datetime(df["Date"])
             sentiment_df["Date"] = pd.to_datetime(sentiment_df["Date"])
-            df["Date"] = df.index.date
             df = df.merge(sentiment_df, how="left", on="Date")
             df.set_index("Date", inplace=True)
 
@@ -127,7 +134,7 @@ if st.button("🔍 Predict Trend"):
 
             from sklearn.model_selection import RandomizedSearchCV
 
-            # Define hyperparameter grid
+            # hyperparameter grid
             param_dist = {
                 "n_estimators": [100, 200, 300],
                 "max_depth": [3, 4, 5, 6],
@@ -142,7 +149,7 @@ if st.button("🔍 Predict Trend"):
             random_search = RandomizedSearchCV(
                 estimator=xgb_base,
                 param_distributions=param_dist,
-                n_iter=25,  # number of parameter sets to try
+                n_iter=25,
                 cv=3,
                 scoring='accuracy',
                 verbose=1,
@@ -152,25 +159,4 @@ if st.button("🔍 Predict Trend"):
 
             # Fit to training data
             random_search.fit(X_train_scaled, y_train)
-
-            # Best model from search
-            best_model = random_search.best_estimator_
-
-            # Predictions
-            y_pred = best_model.predict(X_test_scaled)
-
-            # Results
-            acc = accuracy_score(y_test, y_pred)
-            st.success(f"✅ Tuned Model Accuracy: {acc:.2%}")
-            st.text("Classification Report:")
-            st.text(classification_report(y_test, y_pred))
-
-            # Feature importance
-            st.subheader("📊 Top Feature Importances")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            plot_importance(best_model, max_num_features=10, ax=ax)
-
-            st.pyplot(fig)
-
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
+            best_model = rand_
