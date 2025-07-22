@@ -27,7 +27,7 @@ A Streamlit web app that predicts whether a stock's price will go **up or down t
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/stock-trend-predictor.git
+https://github.com/ISHAN12369/stock-app.git
 cd stock-trend-predictor
 
 # Create a virtual environment (optional)
